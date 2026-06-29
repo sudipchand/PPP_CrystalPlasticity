@@ -91,7 +91,8 @@ MODULE Constants
   INTEGER(KIND=ik),PARAMETER::TEN_int=10_ik,TWELVE_int=12_ik
   INTEGER(KIND=ik),PARAMETER::TWENTY_THREE_int=23_ik,TWENTY_FOUR_int=24_ik
   INTEGER(KIND=ik),PARAMETER::FORTY_EIGHT_int=48_ik
-  INTEGER(KIND=ik),SAVE::n_slip=24_ik
+  INTEGER(KIND=ik),SAVE::n_slip=24_ik   ! set from PROPS(26): 0=FCC(24),1=BCC(48),2=HCP(18)
+  INTEGER(KIND=ik),SAVE::crystal_type=0_ik ! 0=FCC, 1=BCC, 2=HCP
   !
   REAL(KIND=rk),PARAMETER::ZERO_r=0.0_rk,ONE_r=1.0_rk,TWO_r=2.0_rk
   REAL(KIND=rk),PARAMETER::THREE_r=3.0_rk,FOUR_r=4.0_rk,SIX_r=6.0_rk
@@ -130,11 +131,11 @@ MODULE Constants
   ! real-valued parameters defining tolerances in iterative loop
   REAL(KIND=rk),PARAMETER::eps_iter=(EPSILON(ZERO_r))**(ONE_HALF_r)
   REAL(KIND=rk),PARAMETER::zero_distinct=eps_iter**(THREE_by_TWO_r)
-  REAL(KIND=rk),PARAMETER::chi=1.0E-5_rk            ! Eq.40 χ
-  REAL(KIND=rk),PARAMETER::eps_min_nw=zero_distinct  ! Eq.39/40 ε_min
-  REAL(KIND=rk),PARAMETER::tol_kkt=1.0E-10_rk        ! ε_c, Alg.2 line 8
-  REAL(KIND=rk),PARAMETER::beta_eta=10.0_rk          ! Eq.36 β
-  REAL(KIND=rk),PARAMETER::gamma_eta=0.25_rk         ! Eq.36 γ
+  REAL(KIND=rk),PARAMETER::chi=1.0E-5_rk            
+  REAL(KIND=rk),PARAMETER::eps_min_nw=zero_distinct  
+  REAL(KIND=rk),PARAMETER::tol_kkt=1.0E-10_rk        
+  REAL(KIND=rk),PARAMETER::beta_eta=10.0_rk          
+  REAL(KIND=rk),PARAMETER::gamma_eta=0.25_rk        
   REAL(KIND=rk),PARAMETER::tiny_zero=eps_iter**THREE_int
   REAL(KIND=rk),PARAMETER::tol_nw_red=(EPSILON(ZERO_r))**(NINE_by_SIXTEEN_r)
   REAL(KIND=rk),PARAMETER::rel_step_size=TWO_r**(-TWENTY_THREE_int)
@@ -519,15 +520,15 @@ MODULE constitutive_routines_interface
           & mat_param_inelast,theta_KK_t,hard_law)
        USE Abaqus_Interface
        IMPLICIT NONE
-       REAL(KIND=rk),DIMENSION(24),INTENT(INOUT)::residual_nw
-       REAL(KIND=rk),DIMENSION(24),INTENT(INOUT)::deriv_visco_plast_potent
-       REAL(KIND=rk),DIMENSION(24,24),INTENT(INOUT)::jacobian_nw
+       REAL(KIND=rk),DIMENSION(48),INTENT(INOUT)::residual_nw
+       REAL(KIND=rk),DIMENSION(48),INTENT(INOUT)::deriv_visco_plast_potent
+       REAL(KIND=rk),DIMENSION(48,48),INTENT(INOUT)::jacobian_nw
        REAL(KIND=rk),INTENT(IN)::Phi_alpha,dt,eta,theta_KK_t
        REAL(KIND=rk),DIMENSION(13),INTENT(IN)::mat_param_inelast
-       REAL(KIND=rk),DIMENSION(24),INTENT(IN)::dPhi_alpha_d_delta_lambda_ip1_beta
-       REAL(KIND=rk),DIMENSION(24),INTENT(IN)::delta_lambda_i,delta_lambda_ip1
-       REAL(KIND=rk),DIMENSION(24),INTENT(IN)::plastic_slip
-       LOGICAL,DIMENSION(24),INTENT(INOUT)::active_slip_system
+       REAL(KIND=rk),DIMENSION(48),INTENT(IN)::dPhi_alpha_d_delta_lambda_ip1_beta
+       REAL(KIND=rk),DIMENSION(48),INTENT(IN)::delta_lambda_i,delta_lambda_ip1
+       REAL(KIND=rk),DIMENSION(48),INTENT(IN)::plastic_slip
+       LOGICAL,DIMENSION(48),INTENT(INOUT)::active_slip_system
        INTEGER(KIND=ik),INTENT(IN)::algo,alpha_slip,hard_law
      END SUBROUTINE assembly_residual_jacobian_newton
   END INTERFACE assembly_residual_jacobian_newton
@@ -589,18 +590,18 @@ MODULE constitutive_routines_interface
           &conv_issue_max_ati)
        USE Abaqus_Interface
        IMPLICIT NONE
-       REAL(KIND=rk),DIMENSION(24),INTENT(OUT)::plastic_slip_iter
+       REAL(KIND=rk),DIMENSION(48),INTENT(OUT)::plastic_slip_iter
        REAL(KIND=rk),DIMENSION(3,3),INTENT(OUT)::F_p_inv_iter
-       REAL(KIND=rk),DIMENSION(24,6),INTENT(OUT)::d_delta_lambda_ip1_d_C
+       REAL(KIND=rk),DIMENSION(48,6),INTENT(OUT)::d_delta_lambda_ip1_d_C
        REAL(KIND=rk),INTENT(IN)::Je,dt,m_SH,theta_KK
        REAL(KIND=rk),DIMENSION(3),INTENT(IN)::elast_const
        REAL(KIND=rk),DIMENSION(13),INTENT(IN)::mat_param_inelast
-       REAL(KIND=rk),DIMENSION(24),INTENT(IN)::plastic_slip_n
+       REAL(KIND=rk),DIMENSION(48),INTENT(IN)::plastic_slip_n
        REAL(KIND=rk),DIMENSION(3,3),INTENT(IN)::unimod_C,F_p_inv_n,C_inv
        REAL(KIND=rk),DIMENSION(6,3,3),INTENT(IN)::orth_basis
        REAL(KIND=rk),DIMENSION(6,6,6),INTENT(IN)::orth_proj
        INTEGER(KIND=ik),INTENT(IN)::algo,symm_class,NDI,NSHR,hard_law
-       LOGICAL,DIMENSION(24),INTENT(OUT)::active_slip_system
+       LOGICAL,DIMENSION(48),INTENT(OUT)::active_slip_system
        LOGICAL,INTENT(OUT)::conv_issue_max_ati
        CHARACTER(4),INTENT(IN)::env
      END SUBROUTINE determine_incremental_lagrange_multiplier_augmented_lagrange
@@ -615,20 +616,20 @@ MODULE constitutive_routines_interface
           &aver_adjust_per_step,conv_issue)
        USE Abaqus_Interface
        IMPLICIT NONE
-       REAL(KIND=rk),DIMENSION(24),INTENT(OUT)::plastic_slip_iter
+       REAL(KIND=rk),DIMENSION(48),INTENT(OUT)::plastic_slip_iter
        REAL(KIND=rk),DIMENSION(3,3),INTENT(OUT)::F_p_inv_iter
-       REAL(KIND=rk),DIMENSION(24,6),INTENT(OUT)::d_delta_lambda_ip1_d_C
+       REAL(KIND=rk),DIMENSION(48,6),INTENT(OUT)::d_delta_lambda_ip1_d_C
        REAL(KIND=rk),INTENT(IN)::Je,dt,m_SH,theta_KK
        REAL(KIND=rk),INTENT(INOUT)::aver_adjust_per_step
        REAL(KIND=rk),DIMENSION(3),INTENT(IN)::elast_const
        REAL(KIND=rk),DIMENSION(13),INTENT(IN)::mat_param_inelast
-       REAL(KIND=rk),DIMENSION(24),INTENT(IN)::plastic_slip_n
+       REAL(KIND=rk),DIMENSION(48),INTENT(IN)::plastic_slip_n
        REAL(KIND=rk),DIMENSION(3,3),INTENT(IN)::unimod_C,F_p_inv_n,C_inv
        REAL(KIND=rk),DIMENSION(6,3,3),INTENT(IN)::orth_basis
        REAL(KIND=rk),DIMENSION(6,6,6),INTENT(IN)::orth_proj
        INTEGER(KIND=ik),INTENT(IN)::algo,symm_class,NDI,NSHR,hard_law
        LOGICAL,INTENT(OUT)::conv_issue
-       LOGICAL,DIMENSION(24),INTENT(OUT)::active_slip_system
+       LOGICAL,DIMENSION(48),INTENT(OUT)::active_slip_system
        CHARACTER(4),INTENT(IN)::env
      END SUBROUTINE determine_incremental_lagrange_multiplier_miehe_viscoplastic
   END INTERFACE determine_incremental_lagrange_multiplier_miehe_viscoplastic
@@ -656,11 +657,11 @@ MODULE constitutive_routines_interface
        USE Abaqus_Interface
        IMPLICIT NONE
        REAL(KIND=rk),INTENT(OUT)::Phi_alpha
-       REAL(KIND=rk),DIMENSION(24),INTENT(OUT)::dPhi_alpha_d_delta_lambda_ip1_beta
+       REAL(KIND=rk),DIMENSION(48),INTENT(OUT)::dPhi_alpha_d_delta_lambda_ip1_beta
        REAL(KIND=rk),INTENT(IN)::tau_rss
        REAL(KIND=rk),DIMENSION(13),INTENT(IN)::mat_param_inelast
-       REAL(KIND=rk),DIMENSION(24),INTENT(IN)::d_tau_alpha_d_delta_lambda_ip1_beta
-       REAL(KIND=rk),DIMENSION(24),INTENT(IN)::plastic_slip
+       REAL(KIND=rk),DIMENSION(48),INTENT(IN)::d_tau_alpha_d_delta_lambda_ip1_beta
+       REAL(KIND=rk),DIMENSION(48),INTENT(IN)::plastic_slip
        INTEGER(KIND=ik),INTENT(IN)::i_slip,algo,hard_law
      END SUBROUTINE eval_yield_function_linearization
   END INTERFACE eval_yield_function_linearization
@@ -672,9 +673,9 @@ MODULE constitutive_routines_interface
        USE Abaqus_Interface
        IMPLICIT NONE
        REAL(KIND=rk),INTENT(OUT)::Y_alpha
-       REAL(KIND=rk),DIMENSION(24),INTENT(OUT)::dY_alpha_d_delta_lambda_beta
+       REAL(KIND=rk),DIMENSION(48),INTENT(OUT)::dY_alpha_d_delta_lambda_beta
        REAL(KIND=rk),DIMENSION(10),INTENT(IN)::hard_param_cf
-       REAL(KIND=rk),DIMENSION(24),INTENT(IN)::plastic_slip
+       REAL(KIND=rk),DIMENSION(48),INTENT(IN)::plastic_slip
        INTEGER(KIND=ik),INTENT(IN)::alpha_slip
      END SUBROUTINE hardening_function_cailletaud_forest
   END INTERFACE hardening_function_cailletaud_forest
@@ -685,9 +686,9 @@ MODULE constitutive_routines_interface
        USE Abaqus_Interface
        IMPLICIT NONE
        REAL(KIND=rk),INTENT(OUT)::Y_alpha
-       REAL(KIND=rk),DIMENSION(24),INTENT(OUT)::dY_alpha_d_delta_lambda_beta
+       REAL(KIND=rk),DIMENSION(48),INTENT(OUT)::dY_alpha_d_delta_lambda_beta
        REAL(KIND=rk),DIMENSION(3),INTENT(IN)::hard_param_sb
-       REAL(KIND=rk),DIMENSION(24),INTENT(IN)::plastic_slip
+       REAL(KIND=rk),DIMENSION(48),INTENT(IN)::plastic_slip
      END SUBROUTINE hardening_function_schmidt_baldassari
   END INTERFACE hardening_function_schmidt_baldassari
   !
@@ -729,9 +730,9 @@ MODULE constitutive_routines_interface
        REAL(KIND=rk),INTENT(IN)::Je,dt,m_SH,theta_KK,eta,tol_nw
        REAL(KIND=rk),DIMENSION(3),INTENT(IN)::elast_const
        REAL(KIND=rk),DIMENSION(13),INTENT(IN)::mat_param_inelast
-       REAL(KIND=rk),DIMENSION(24),INTENT(IN)::delta_lambda_i
-       REAL(KIND=rk),DIMENSION(24),INTENT(IN)::plastic_slip_n
-       REAL(KIND=rk),DIMENSION(24),INTENT(INOUT)::delta_lambda_ip1
+       REAL(KIND=rk),DIMENSION(48),INTENT(IN)::delta_lambda_i
+       REAL(KIND=rk),DIMENSION(48),INTENT(IN)::plastic_slip_n
+       REAL(KIND=rk),DIMENSION(48),INTENT(INOUT)::delta_lambda_ip1
        REAL(KIND=rk),DIMENSION(3,3),INTENT(IN)::unimod_C,F_p_inv_n
        REAL(KIND=rk),DIMENSION(6,3,3),INTENT(IN)::orth_basis
        REAL(KIND=rk),DIMENSION(6,6,6),INTENT(IN)::orth_proj
@@ -780,22 +781,22 @@ MODULE constitutive_routines_interface
           &mat_param_inelast,NDI,NSHR,env,eta,hard_law,theta_KK,Phi_alpha_all)
        USE Abaqus_Interface
        IMPLICIT NONE
-       REAL(KIND=rk),DIMENSION(24),INTENT(OUT)::residual_nw
-       REAL(KIND=rk),DIMENSION(24),INTENT(OUT)::Phi_alpha_all
-       REAL(KIND=rk),DIMENSION(24),INTENT(OUT)::deriv_visco_plast_potent
-       REAL(KIND=rk),DIMENSION(24,24),INTENT(OUT)::jacobian_nw
+       REAL(KIND=rk),DIMENSION(48),INTENT(OUT)::residual_nw
+       REAL(KIND=rk),DIMENSION(48),INTENT(OUT)::Phi_alpha_all
+       REAL(KIND=rk),DIMENSION(48),INTENT(OUT)::deriv_visco_plast_potent
+       REAL(KIND=rk),DIMENSION(48,48),INTENT(OUT)::jacobian_nw
        REAL(KIND=rk),INTENT(IN)::Je,dt,eta,m_SH,theta_KK
        REAL(KIND=rk),DIMENSION(3),INTENT(IN)::elast_const
        REAL(KIND=rk),DIMENSION(13),INTENT(IN)::mat_param_inelast
-       REAL(KIND=rk),DIMENSION(24),INTENT(IN)::plastic_slip_iter
-       REAL(KIND=rk),DIMENSION(24),INTENT(IN)::delta_lambda_i
-       REAL(KIND=rk),DIMENSION(24),INTENT(IN)::delta_lambda_ip1
+       REAL(KIND=rk),DIMENSION(48),INTENT(IN)::plastic_slip_iter
+       REAL(KIND=rk),DIMENSION(48),INTENT(IN)::delta_lambda_i
+       REAL(KIND=rk),DIMENSION(48),INTENT(IN)::delta_lambda_ip1
        REAL(KIND=rk),DIMENSION(3,3),INTENT(IN)::unimod_C,F_p_inv_iter
        REAL(KIND=rk),DIMENSION(3,3),INTENT(IN)::F_p_inv_n
        REAL(KIND=rk),DIMENSION(6,3,3),INTENT(IN)::orth_basis
        REAL(KIND=rk),DIMENSION(6,6,6),INTENT(IN)::orth_proj
        INTEGER(KIND=ik),INTENT(IN)::algo,symm_class,NDI,NSHR,hard_law
-       LOGICAL,DIMENSION(24),INTENT(OUT)::active_slip_system
+       LOGICAL,DIMENSION(48),INTENT(OUT)::active_slip_system
        CHARACTER(4),INTENT(IN)::env
      END SUBROUTINE residual_tangent_computation_nw_crystal_plasticity
   END INTERFACE residual_tangent_computation_nw_crystal_plasticity
@@ -808,14 +809,14 @@ MODULE constitutive_routines_interface
           &env,eta,hard_law,theta_KK)
        USE Abaqus_Interface
        IMPLICIT NONE
-       REAL(KIND=rk),DIMENSION(24),INTENT(OUT)::residual_nw
-       REAL(KIND=rk),DIMENSION(24,24),INTENT(OUT)::jacobian_nw
+       REAL(KIND=rk),DIMENSION(48),INTENT(OUT)::residual_nw
+       REAL(KIND=rk),DIMENSION(48,48),INTENT(OUT)::jacobian_nw
        REAL(KIND=rk),INTENT(IN)::Je,dt,eta,m_SH,theta_KK
        REAL(KIND=rk),DIMENSION(3),INTENT(IN)::elast_const
        REAL(KIND=rk),DIMENSION(13),INTENT(IN)::mat_param_inelast
-       REAL(KIND=rk),DIMENSION(24),INTENT(IN)::plastic_slip_n
-       REAL(KIND=rk),DIMENSION(24),INTENT(IN)::delta_lambda_i
-       REAL(KIND=rk),DIMENSION(24),INTENT(IN)::delta_lambda_ip1
+       REAL(KIND=rk),DIMENSION(48),INTENT(IN)::plastic_slip_n
+       REAL(KIND=rk),DIMENSION(48),INTENT(IN)::delta_lambda_i
+       REAL(KIND=rk),DIMENSION(48),INTENT(IN)::delta_lambda_ip1
        REAL(KIND=rk),DIMENSION(3,3),INTENT(IN)::unimod_C
        REAL(KIND=rk),DIMENSION(3,3),INTENT(IN)::F_p_inv_n
        REAL(KIND=rk),DIMENSION(6,3,3),INTENT(IN)::orth_basis
@@ -832,7 +833,7 @@ MODULE constitutive_routines_interface
        USE Abaqus_Interface
        IMPLICIT NONE
        REAL(KIND=rk),INTENT(OUT)::tau_alpha_rss
-       REAL(KIND=rk),DIMENSION(24),INTENT(OUT)::d_tau_alpha_d_delta_lambda_ip1_beta
+       REAL(KIND=rk),DIMENSION(48),INTENT(OUT)::d_tau_alpha_d_delta_lambda_ip1_beta
        REAL(KIND=rk),DIMENSION(3,3),INTENT(IN)::M_dev,N_alpha
        REAL(KIND=rk),DIMENSION(9,24),INTENT(IN)::d_Mandel_stress_d_delta_lambda_ip1_beta
        CHARACTER(4),INTENT(IN)::env
@@ -858,22 +859,22 @@ MODULE constitutive_routines_interface
        USE Abaqus_Interface
        IMPLICIT NONE
        REAL(KIND=rk),INTENT(OUT)::Je_n1,det_Fp_inv
-       REAL(KIND=rk),DIMENSION(24),INTENT(OUT)::plastic_slip_iter
+       REAL(KIND=rk),DIMENSION(48),INTENT(OUT)::plastic_slip_iter
        REAL(KIND=rk),DIMENSION(3,3),INTENT(OUT)::S2PK,S2PK_IC,F_p_inv_n1
        REAL(KIND=rk),DIMENSION(3,3),INTENT(OUT)::Ce_n1,Ce_n1_inv,C
        REAL(KIND=rk),DIMENSION(3,3),INTENT(OUT)::F_p_inv_iter
-       REAL(KIND=rk),DIMENSION(24,6),INTENT(OUT)::d_delta_lambda_ip1_d_C
+       REAL(KIND=rk),DIMENSION(48,6),INTENT(OUT)::d_delta_lambda_ip1_d_C
        REAL(KIND=rk),INTENT(IN)::dt,m_SH,theta_KK
        REAL(KIND=rk),INTENT(INOUT)::aver_adj_stp
        REAL(KIND=rk),DIMENSION(3),INTENT(IN)::elast_const
        REAL(KIND=rk),DIMENSION(13),INTENT(IN)::mat_param_inelast
-       REAL(KIND=rk),DIMENSION(24),INTENT(IN)::plastic_slip_n
+       REAL(KIND=rk),DIMENSION(48),INTENT(IN)::plastic_slip_n
        REAL(KIND=rk),DIMENSION(3,3),INTENT(IN)::F,F_p_inv_n
        REAL(KIND=rk),DIMENSION(6,3,3),INTENT(IN)::orth_basis
        REAL(KIND=rk),DIMENSION(6,6,6),INTENT(IN)::orth_proj
        INTEGER(KIND=ik),INTENT(IN)::algo,symm_class,NDI,NSHR,hard_law
        LOGICAL,INTENT(OUT)::conv_issue_dil
-       LOGICAL,DIMENSION(24),INTENT(OUT)::active_slip_system
+       LOGICAL,DIMENSION(48),INTENT(OUT)::active_slip_system
        CHARACTER(4),INTENT(IN)::env
      END SUBROUTINE stress_computation_single_crystal_plasticity
   END INTERFACE stress_computation_single_crystal_plasticity
@@ -901,11 +902,11 @@ MODULE constitutive_routines_interface
           &plastic_slip_n,F_p_inv_n)
        USE Abaqus_Interface
        IMPLICIT NONE
-       REAL(KIND=rk),DIMENSION(24),INTENT(INOUT)::delta_lambda_ip1
-       REAL(KIND=rk),DIMENSION(24),INTENT(OUT)::plastic_slip_iter
+       REAL(KIND=rk),DIMENSION(48),INTENT(INOUT)::delta_lambda_ip1
+       REAL(KIND=rk),DIMENSION(48),INTENT(OUT)::plastic_slip_iter
        REAL(KIND=rk),DIMENSION(3,3),INTENT(OUT)::F_p_inv_iter
-       REAL(KIND=rk),DIMENSION(24),INTENT(IN)::dd_delta_lambda_ip1
-       REAL(KIND=rk),DIMENSION(24),INTENT(IN)::plastic_slip_n
+       REAL(KIND=rk),DIMENSION(48),INTENT(IN)::dd_delta_lambda_ip1
+       REAL(KIND=rk),DIMENSION(48),INTENT(IN)::plastic_slip_n
        REAL(KIND=rk),DIMENSION(3,3),INTENT(IN)::F_p_inv_n
      END SUBROUTINE update_internal_variable_nw_iter
   END INTERFACE update_internal_variable_nw_iter
@@ -941,17 +942,17 @@ MODULE constitutive_routines_interface
        IMPLICIT NONE
        REAL(KIND=rk),INTENT(IN)::Je,m_SH,eta,dt
        REAL(KIND=rk),DIMENSION(3),INTENT(IN)::elast_const
-       REAL(KIND=rk),DIMENSION(24),INTENT(IN)::deriv_visco_plast_potent
+       REAL(KIND=rk),DIMENSION(48),INTENT(IN)::deriv_visco_plast_potent
        REAL(KIND=rk),DIMENSION(3,3),INTENT(IN)::F_p_inv_iter,unimod_C
        REAL(KIND=rk),DIMENSION(3,3),INTENT(IN)::C_inv
-       REAL(KIND=rk),DIMENSION(24,6),INTENT(IN)::d_delta_lambda_i_d_C
-       REAL(KIND=rk),DIMENSION(24,24),INTENT(IN)::jacobian_nw
+       REAL(KIND=rk),DIMENSION(48,6),INTENT(IN)::d_delta_lambda_i_d_C
+       REAL(KIND=rk),DIMENSION(48,48),INTENT(IN)::jacobian_nw
        REAL(KIND=rk),DIMENSION(6,3,3),INTENT(IN)::orth_basis
        REAL(KIND=rk),DIMENSION(6,6,6),INTENT(IN)::orth_proj
-       REAL(KIND=rk),DIMENSION(24,6)::comp_d_delta_lambda_ip1_d_C
+       REAL(KIND=rk),DIMENSION(48,6)::comp_d_delta_lambda_ip1_d_C
        INTEGER(KIND=ik),INTENT(IN)::algo,symm_class,NDI,NSHR
        CHARACTER(4),INTENT(IN)::env
-       LOGICAL,DIMENSION(24),INTENT(IN)::active_slip_system
+       LOGICAL,DIMENSION(48),INTENT(IN)::active_slip_system
      END FUNCTION comp_d_delta_lambda_ip1_d_C
   END INTERFACE comp_d_delta_lambda_ip1_d_C
   !
@@ -990,12 +991,12 @@ MODULE constitutive_routines_interface
        REAL(KIND=rk),DIMENSION(3,3),INTENT(IN)::C,F_p_inv_n,F_p_inv_iter
        REAL(KIND=rk),DIMENSION(3,3),INTENT(IN)::Ce_n1,Ce_n1_inv
        REAL(KIND=rk),DIMENSION(3,3),INTENT(IN)::S2PK_IC,F_p_inv_n1
-       REAL(KIND=rk),DIMENSION(24,6),INTENT(IN)::d_delta_lambda_ip1_d_C
+       REAL(KIND=rk),DIMENSION(48,6),INTENT(IN)::d_delta_lambda_ip1_d_C
        REAL(KIND=rk),DIMENSION(6,3,3),INTENT(IN)::orth_basis
        REAL(KIND=rk),DIMENSION(6,6,6),INTENT(IN)::orth_proj
        REAL(KIND=rk),DIMENSION(6,6)::consistent_algorithmic_tangent_augmented_lagrangian_penalty
        INTEGER(KIND=ik),INTENT(IN)::symm_class,NDI,NSHR
-       LOGICAL,DIMENSION(24),INTENT(IN)::active_slip_system
+       LOGICAL,DIMENSION(48),INTENT(IN)::active_slip_system
        CHARACTER(4),INTENT(IN)::env
      END FUNCTION consistent_algorithmic_tangent_augmented_lagrangian_penalty
   END INTERFACE consistent_algorithmic_tangent_augmented_lagrangian_penalty
@@ -1010,7 +1011,7 @@ MODULE constitutive_routines_interface
        REAL(KIND=rk),INTENT(IN)::dt,m_SH,theta_KK,aver_adj_stp
        REAL(KIND=rk),DIMENSION(3),INTENT(IN)::elast_const
        REAL(KIND=rk),DIMENSION(13),INTENT(IN)::mat_param_inelast
-       REAL(KIND=rk),DIMENSION(24),INTENT(IN)::plastic_slip_n
+       REAL(KIND=rk),DIMENSION(48),INTENT(IN)::plastic_slip_n
        REAL(KIND=rk),DIMENSION(3,3),INTENT(IN)::S2PK,F,F_p_inv_n
        REAL(KIND=rk),DIMENSION(6,3,3),INTENT(IN)::orth_basis
        REAL(KIND=rk),DIMENSION(6,6,6),INTENT(IN)::orth_proj
@@ -1037,9 +1038,9 @@ MODULE constitutive_routines_interface
        USE Abaqus_Interface
        IMPLICIT NONE
        REAL(KIND=rk),DIMENSION(3,3),INTENT(IN)::F_p_inv_n
-       REAL(KIND=rk),DIMENSION(24,6),INTENT(IN)::d_delta_lambda_ip1_d_C
+       REAL(KIND=rk),DIMENSION(48,6),INTENT(IN)::d_delta_lambda_ip1_d_C
        REAL(KIND=rk),DIMENSION(3,3,3,3)::derivative_inverse_plastic_def_grad_right_cauchy_green_tensor_c
-       LOGICAL,DIMENSION(24),INTENT(IN)::active_slip_system
+       LOGICAL,DIMENSION(48),INTENT(IN)::active_slip_system
        CHARACTER(4),INTENT(IN)::env
      END FUNCTION derivative_inverse_plastic_def_grad_right_cauchy_green_tensor_c
   END INTERFACE derivative_inverse_plastic_def_grad_right_cauchy_green_tensor_c
@@ -1082,7 +1083,7 @@ MODULE constitutive_routines_interface
        USE Abaqus_Interface
        IMPLICIT NONE
        REAL(KIND=rk),DIMENSION(6),INTENT(IN)::hard_param_im
-       REAL(KIND=rk),DIMENSION(24,24)::interaction_matrix
+       REAL(KIND=rk),DIMENSION(48,48)::interaction_matrix
      END FUNCTION interaction_matrix
   END INTERFACE interaction_matrix
   !
@@ -1139,7 +1140,7 @@ MODULE constitutive_routines_interface
           &delta_lambda_ip1)
        USE Abaqus_Interface
        IMPLICIT NONE
-       REAL(KIND=rk),DIMENSION(24),INTENT(IN)::delta_lambda_ip1
+       REAL(KIND=rk),DIMENSION(48),INTENT(IN)::delta_lambda_ip1
        REAL(KIND=rk),DIMENSION(3,3),INTENT(IN)::F_p_inv_n
        REAL(KIND=rk),DIMENSION(3,3)::update_plastic_deformation_gradient
      END FUNCTION update_plastic_deformation_gradient
@@ -3192,22 +3193,22 @@ SUBROUTINE assembly_residual_jacobian_newton (residual_nw,jacobian_nw,&
   !                    1....nonlin. interaction matrix (Cailletaud,Forest)
   !
   IMPLICIT NONE
-  REAL(KIND=rk),DIMENSION(24),INTENT(INOUT)::residual_nw
-  REAL(KIND=rk),DIMENSION(24),INTENT(INOUT)::deriv_visco_plast_potent
-  REAL(KIND=rk),DIMENSION(24,24),INTENT(INOUT)::jacobian_nw
+  REAL(KIND=rk),DIMENSION(48),INTENT(INOUT)::residual_nw
+  REAL(KIND=rk),DIMENSION(48),INTENT(INOUT)::deriv_visco_plast_potent
+  REAL(KIND=rk),DIMENSION(48,48),INTENT(INOUT)::jacobian_nw
   REAL(KIND=rk),INTENT(IN)::Phi_alpha,dt,eta,theta_KK_t
   REAL(KIND=rk),DIMENSION(13),INTENT(IN)::mat_param_inelast
-  REAL(KIND=rk),DIMENSION(24),INTENT(IN)::dPhi_alpha_d_delta_lambda_ip1_beta
-  REAL(KIND=rk),DIMENSION(24),INTENT(IN)::delta_lambda_i,delta_lambda_ip1
-  REAL(KIND=rk),DIMENSION(24),INTENT(IN)::plastic_slip
+  REAL(KIND=rk),DIMENSION(48),INTENT(IN)::dPhi_alpha_d_delta_lambda_ip1_beta
+  REAL(KIND=rk),DIMENSION(48),INTENT(IN)::delta_lambda_i,delta_lambda_ip1
+  REAL(KIND=rk),DIMENSION(48),INTENT(IN)::plastic_slip
   REAL(KIND=rk)::val_max_funct,aux_funct,p_exp_vp
   REAL(KIND=rk)::tau_relax_vp,K_norm_stress_vp,tau_crss_alpha
   REAL(KIND=rk)::Y_alpha,aux_aux_funct,Y
   REAL(KIND=rk),DIMENSION(3)::mat_param_visco,hard_param_sb
   REAL(KIND=rk),DIMENSION(10)::hard_param_cf
-  REAL(KIND=rk),DIMENSION(24)::dY_alpha_d_delta_lambda_beta
+  REAL(KIND=rk),DIMENSION(48)::dY_alpha_d_delta_lambda_beta
   !
-  LOGICAL,DIMENSION(24),INTENT(INOUT)::active_slip_system
+  LOGICAL,DIMENSION(48),INTENT(INOUT)::active_slip_system
   INTEGER(KIND=ik),INTENT(IN)::algo,alpha_slip,hard_law
   !
   SELECT CASE (algo)
@@ -3504,16 +3505,16 @@ SUBROUTINE crystal_plasticity_augm_lagr(S2PK,C_tang,SDV,F,dt,&
   REAL(KIND=rk)::Je_n1,det_Fp_inv,aver_adj_stp,aver_adj_stp_save
   REAL(KIND=rk),DIMENSION(3,3)::F_p_inv_n,F_p_inv_n1,S2PK_IC,Ce_n1
   REAL(KIND=rk),DIMENSION(3,3)::Ce_n1_inv,C,F_p_inv_iter,Fe_n1,Re_n1
-  REAL(KIND=rk),DIMENSION(24)::plastic_slip_n,plastic_slip_iter
-  REAL(KIND=rk),DIMENSION(24,6)::d_delta_lambda_ip1_d_C
+  REAL(KIND=rk),DIMENSION(48)::plastic_slip_n,plastic_slip_iter
+  REAL(KIND=rk),DIMENSION(48,6)::d_delta_lambda_ip1_d_C
   LOGICAL,INTENT(OUT)::conv_issue_dil
-  LOGICAL,DIMENSION(24)::active_slip_system
+  LOGICAL,DIMENSION(48)::active_slip_system
   !
   CHARACTER(4),INTENT(IN)::env
   !    
   ! internal variables at t_n
   CALL transform_tens_vec_form(F_p_inv_n,SDV(1:9),ONE_int,env)
-  plastic_slip_n=SDV(10:33)
+  plastic_slip_n(1:n_slip)=SDV(10:9+n_slip)
   aver_adj_stp=MAX(ONE_r,SDV(NSTATV))
   !
   ! compute stress and internal variables
@@ -3530,7 +3531,7 @@ SUBROUTINE crystal_plasticity_augm_lagr(S2PK,C_tang,SDV,F,dt,&
   !
   ! assign internal variable to history field
   CALL transform_tens_vec_form(F_p_inv_n1,SDV(1:9),ZERO_int,env)
-  SDV(10:33)=plastic_slip_iter
+  SDV(10:9+n_slip)=plastic_slip_iter(1:n_slip)
   SDV(34)=SUM(plastic_slip_iter)
   SDV(35:37)=EulAngFromRotMat(Transpose(Re_n1))
   SDV(NSTATV)=aver_adj_stp
@@ -3621,38 +3622,38 @@ SUBROUTINE determine_incremental_lagrange_multiplier_augmented_lagrange(&
   !                     number of attempts exceeds maximum value
   !
   IMPLICIT NONE
-  REAL(KIND=rk),DIMENSION(24),INTENT(OUT)::plastic_slip_iter
+  REAL(KIND=rk),DIMENSION(48),INTENT(OUT)::plastic_slip_iter
   REAL(KIND=rk),DIMENSION(3,3),INTENT(OUT)::F_p_inv_iter
-  REAL(KIND=rk),DIMENSION(24,6),INTENT(OUT)::d_delta_lambda_ip1_d_C
+  REAL(KIND=rk),DIMENSION(48,6),INTENT(OUT)::d_delta_lambda_ip1_d_C
   REAL(KIND=rk),INTENT(IN)::Je,dt,m_SH,theta_KK
   REAL(KIND=rk),DIMENSION(3),INTENT(IN)::elast_const
   REAL(KIND=rk),DIMENSION(13),INTENT(IN)::mat_param_inelast
-  REAL(KIND=rk),DIMENSION(24),INTENT(IN)::plastic_slip_n
+  REAL(KIND=rk),DIMENSION(48),INTENT(IN)::plastic_slip_n
   REAL(KIND=rk),DIMENSION(3,3),INTENT(IN)::unimod_C,F_p_inv_n,C_inv
   REAL(KIND=rk),DIMENSION(6,3,3),INTENT(IN)::orth_basis
   REAL(KIND=rk),DIMENSION(6,6,6),INTENT(IN)::orth_proj
   REAL(KIND=rk)::eta,eta_save,mult_fact,lambda,lambda_two,obj_f_two
   REAL(KIND=rk)::obj_f,obj_f_save,tol_nw,tol_fp,mult_fact_init
   REAL(KIND=rk)::norm_diff_delta_lambda_i_ip1,aver_red_fp
-  ! --- Phase 1 additions ---
-  REAL(KIND=rk),DIMENSION(24)::Phi_alpha_all,phi_tilde_plus
+  ! --- Phase 1 (Algorithm 2) additions ---
+  REAL(KIND=rk),DIMENSION(48)::Phi_alpha_all,phi_tilde_plus
   REAL(KIND=rk)::norm_R,norm_Phi_tilde_inf,norm_Phi_tilde_prev,Phi_ref
   LOGICAL::kkt_ok
   ! ----------------------------------------
-  REAL(KIND=rk),DIMENSION(24)::delta_lambda_ip1,delta_lambda_i
-  REAL(KIND=rk),DIMENSION(24)::residual_nw,grad_f,grad_f_save
-  REAL(KIND=rk),DIMENSION(24)::delta_lambda_ip1_save
-  REAL(KIND=rk),DIMENSION(24)::deriv_visco_plast_potent
-  REAL(KIND=rk),DIMENSION(24)::dd_delta_lambda_ip1,diff_delta_lambda
-  REAL(KIND=rk),DIMENSION(24,1)::dummy_var
-  REAL(KIND=rk),DIMENSION(24,6)::d_delta_lambda_i_d_C
-  REAL(KIND=rk),DIMENSION(24,24)::jacobian_nw
+  REAL(KIND=rk),DIMENSION(48)::delta_lambda_ip1,delta_lambda_i
+  REAL(KIND=rk),DIMENSION(48)::residual_nw,grad_f,grad_f_save
+  REAL(KIND=rk),DIMENSION(48)::delta_lambda_ip1_save
+  REAL(KIND=rk),DIMENSION(48)::deriv_visco_plast_potent
+  REAL(KIND=rk),DIMENSION(48)::dd_delta_lambda_ip1,diff_delta_lambda
+  REAL(KIND=rk),DIMENSION(48,1)::dummy_var
+  REAL(KIND=rk),DIMENSION(48,6)::d_delta_lambda_i_d_C
+  REAL(KIND=rk),DIMENSION(48,48)::jacobian_nw
   INTEGER(KIND=ik),INTENT(IN)::algo,symm_class,NDI,NSHR,hard_law
   INTEGER(KIND=ik)::l_iter_fp,l_attempt,l_iter_nw,back_track_count
   INTEGER(KIND=ik),PARAMETER::n_iter_max_nw=20,n_iter_max_fp=40
   INTEGER(KIND=ik),PARAMETER::n_attempt_max=20,n_max_bt=10,n_memory=3
   REAL(KIND=rk),DIMENSION(n_memory)::mem_mult_fact,mem_red_fp
-  LOGICAL,DIMENSION(24),INTENT(OUT)::active_slip_system
+  LOGICAL,DIMENSION(48),INTENT(OUT)::active_slip_system
   LOGICAL,INTENT(OUT)::conv_issue_max_ati
   LOGICAL::n_conv_fp,n_conv_nw,back_tracking,back_track_off,conv_issue
   !
@@ -3668,9 +3669,8 @@ SUBROUTINE determine_incremental_lagrange_multiplier_augmented_lagrange(&
   d_delta_lambda_i_d_C=ZERO_r
   !
   ! parameter for augmented lagrangian approach
-  ! Dt*eta(0) = 10/G
   ! isotropic: G = elast_const(2) = mu ; cubic: G = elast_const(3) = C44
-  IF (symm_class/=TWO_int) THEN
+  IF (symm_class==ONE_int) THEN
      eta=(TWO_r*FIVE_r)/elast_const(TWO_int)
   ELSE
      eta=(TWO_r*FIVE_r)/elast_const(THREE_int)
@@ -3680,6 +3680,7 @@ SUBROUTINE determine_incremental_lagrange_multiplier_augmented_lagrange(&
   mult_fact_init=mult_fact
   !
   ! parameters for newton and fixed-point iteration
+  ! initial adaptive tolerance
   CALL residual_tangent_nw_crystal_plasticity_generic_solver(&
        &residual_nw,jacobian_nw,unimod_C,F_p_inv_n,Je,plastic_slip_n,&
        &delta_lambda_i,delta_lambda_ip1,algo,dt,m_SH,elast_const,&
@@ -3688,7 +3689,7 @@ SUBROUTINE determine_incremental_lagrange_multiplier_augmented_lagrange(&
   norm_R=SQRT(DOT_PRODUCT(residual_nw,residual_nw))
   tol_nw=MAX(chi*MIN(ONE_r,norm_R),eps_min_nw)
   tol_fp=zero_distinct
-  ! initialise large
+  ! Eq.(36) needs previous violation; initialise large so first step can grow eta
   norm_Phi_tilde_prev=HUGE(ONE_r)
   !
   ! initialization fixed-point iteration
@@ -3734,7 +3735,7 @@ SUBROUTINE determine_incremental_lagrange_multiplier_augmented_lagrange(&
            CALL back_tracking_step_length_scaling_parameter(back_tracking,&
                 &back_track_count,lambda,lambda_two,delta_lambda_ip1,&
                 &delta_lambda_ip1_save,dd_delta_lambda_ip1,obj_f,&
-                &obj_f_save,obj_f_two,grad_f_save,TWENTY_FOUR_int)
+                &obj_f_save,obj_f_two,grad_f_save,n_slip)
         END IF
         !
         ! safe guard to avoid infinite loop
@@ -3753,13 +3754,17 @@ SUBROUTINE determine_incremental_lagrange_multiplier_augmented_lagrange(&
            ! compute increment
            dummy_var(:,1)=residual_nw
            dummy_var=SOLVE_SYSTEM_OF_EQUATION(jacobian_nw,&
-                &-dummy_var,ONE_int,TWENTY_FOUR_int)
+                &-dummy_var,ONE_int,n_slip)
            dd_delta_lambda_ip1=dummy_var(:,1)
            !
-  
-           ! exit when ||R|| <= eps^(i) AND all dlambda >= 0
+           ! residual-based exit with positivity guard
+           ! exit when ||R|| <= eps^(i) AND all Dlambda >= 0
            delta_lambda_ip1=delta_lambda_ip1+dd_delta_lambda_ip1
            norm_R=SQRT(DOT_PRODUCT(residual_nw,residual_nw))
+           ! --- DIAG: residual at every Newton iteration ---
+           WRITE(16,'(A,1X,I4,1X,I4,1X,ES16.8,1X,ES16.8,1X,I3)') 'NEWTON',&
+                &l_iter_fp,l_iter_nw,norm_R,tol_nw,COUNT(active_slip_system)
+           ! --- END DIAG ---
            IF ((norm_R<tol_nw).AND.(ALL(delta_lambda_ip1>=-tol_kkt))) THEN
               n_conv_nw=.FALSE.
               l_attempt=ZERO_int
@@ -3787,10 +3792,10 @@ SUBROUTINE determine_incremental_lagrange_multiplier_augmented_lagrange(&
           &orth_proj,mat_param_inelast,NDI,NSHR,env,eta,hard_law,theta_KK,Phi_alpha_all)
      !
      
-     ! --- DIAG: residual after Newton loop ends (per fixed-point) ---
-     WRITE(16,'(A,1X,I4,1X,ES16.8,1X,I3)') 'NWEND',l_iter_fp,&
+     ! --- DIAG: residual per fixed-point iteration (FIXPT) ---
+     WRITE(16,'(A,1X,I4,1X,ES16.8,1X,I3)') 'FIXPT',l_iter_fp,&
           &SQRT(DOT_PRODUCT(residual_nw,residual_nw)),COUNT(active_slip_system)
-     ! --------
+     ! --- END DIAG ---
      
      ! adjustment of pseudo-viscosity
      IF ((l_iter_nw>n_iter_max_nw).OR.(conv_issue)) THEN
@@ -3810,33 +3815,33 @@ SUBROUTINE determine_incremental_lagrange_multiplier_augmented_lagrange(&
         !
         delta_lambda_ip1=delta_lambda_i
      ELSE
-        ! successful inner Newton iteration -> evaluate Alg.2 lines 8-13
+        ! successful inner Newton iteration
         !
-        ! KKT violation measure
+        ! KKT violation measure Phi_tilde_+
         phi_tilde_plus=MAX(Phi_alpha_all,&
              &-delta_lambda_ip1/MAX(dt*eta,lb_invert))
         norm_Phi_tilde_inf=MAXVAL(ABS(phi_tilde_plus))
         !
-        ! reference stress (tau0) to non-dimensionalise stress-scale checks
+        ! reference stress
         Phi_ref=MAX(ABS(mat_param_inelast(ONE_int)),lb_invert)
         !
-        ! KKT check
+        !KKT check
         kkt_ok=ALL(Phi_alpha_all<=tol_kkt*Phi_ref).AND.&
              &ALL(delta_lambda_ip1>=-tol_kkt).AND.&
              &ALL(ABS(Phi_alpha_all*delta_lambda_ip1)<=tol_kkt*Phi_ref)
         !
         IF (kkt_ok) THEN
-           ! compute final consistent tangent
+           ! compute final consistent tangent at converged state
            d_delta_lambda_ip1_d_C=comp_d_delta_lambda_ip1_d_C(&
                 &active_slip_system,jacobian_nw,d_delta_lambda_i_d_C,&
                 &F_p_inv_iter,unimod_C,Je,C_inv,elast_const,m_SH,symm_class,&
                 &orth_basis,orth_proj,eta,dt,algo,deriv_visco_plast_potent,&
                 &env,NDI,NSHR)
            n_conv_fp=.FALSE.
-           ! --- DIAG: residual after fixed point loop ends---
-           WRITE(16,'(A,1X,I4,1X,ES16.8,1X,I3)') 'FPEND',l_iter_fp,&
+           ! --- DIAG: converged increment (CONVRG) ---
+           WRITE(16,'(A,1X,I4,1X,ES16.8,1X,I3)') 'CONVRG',l_iter_fp,&
                 &SQRT(DOT_PRODUCT(residual_nw,residual_nw)),COUNT(active_slip_system)
-           ! ---------
+           ! --- END DIAG ---
         ELSE
            ! implicit tangent update
            d_delta_lambda_ip1_d_C=comp_d_delta_lambda_ip1_d_C(&
@@ -3845,11 +3850,11 @@ SUBROUTINE determine_incremental_lagrange_multiplier_augmented_lagrange(&
                 &orth_basis,orth_proj,eta,dt,algo,deriv_visco_plast_potent,&
                 &env,NDI,NSHR)
            !
-           ! adaptive Newton tolerance update
+           !adaptive Newton tolerance update
            tol_nw=MAX(eps_min_nw,&
                 &MIN(ONE_HUNDREDTH_r*tol_nw,norm_Phi_tilde_inf/Phi_ref))
            !
-           ! penalty update with beta=10, gamma=0.25
+           !beta=10, gamma=0.25
            eta_save=eta
            IF (norm_Phi_tilde_inf>gamma_eta*norm_Phi_tilde_prev) THEN
               eta=beta_eta*eta
@@ -3946,14 +3951,14 @@ SUBROUTINE determine_incremental_lagrange_multiplier_miehe_viscoplastic(&
   !                     ramping of viscoplastic material constants
   !
   IMPLICIT NONE
-  REAL(KIND=rk),DIMENSION(24),INTENT(OUT)::plastic_slip_iter
+  REAL(KIND=rk),DIMENSION(48),INTENT(OUT)::plastic_slip_iter
   REAL(KIND=rk),DIMENSION(3,3),INTENT(OUT)::F_p_inv_iter
-  REAL(KIND=rk),DIMENSION(24,6),INTENT(OUT)::d_delta_lambda_ip1_d_C
+  REAL(KIND=rk),DIMENSION(48,6),INTENT(OUT)::d_delta_lambda_ip1_d_C
   REAL(KIND=rk),INTENT(IN)::Je,dt,m_SH,theta_KK
   REAL(KIND=rk),INTENT(INOUT)::aver_adjust_per_step
   REAL(KIND=rk),DIMENSION(3),INTENT(IN)::elast_const
   REAL(KIND=rk),DIMENSION(13),INTENT(IN)::mat_param_inelast
-  REAL(KIND=rk),DIMENSION(24),INTENT(IN)::plastic_slip_n
+  REAL(KIND=rk),DIMENSION(48),INTENT(IN)::plastic_slip_n
   REAL(KIND=rk),DIMENSION(3,3),INTENT(IN)::unimod_C,F_p_inv_n,C_inv
   REAL(KIND=rk),DIMENSION(6,3,3),INTENT(IN)::orth_basis
   REAL(KIND=rk),DIMENSION(6,6,6),INTENT(IN)::orth_proj
@@ -3961,16 +3966,16 @@ SUBROUTINE determine_incremental_lagrange_multiplier_miehe_viscoplastic(&
   REAL(KIND=rk)::tau_relax_vp_target
   REAL(KIND=rk),DIMENSION(3)::mat_param_visco
   REAL(KIND=rk),DIMENSION(13)::mat_param_inelast_tp
-  REAL(KIND=rk),DIMENSION(24)::delta_lambda_ip1,delta_lambda_i
-  REAL(KIND=rk),DIMENSION(24)::delta_lambda_ip1_save,dummy_var
-  REAL(KIND=rk),DIMENSION(24)::deriv_visco_plast_potent,Phi_alpha_dum
-  REAL(KIND=rk),DIMENSION(24,6)::d_delta_lambda_i_d_C
-  REAL(KIND=rk),DIMENSION(24,24)::jacobian_nw
+  REAL(KIND=rk),DIMENSION(48)::delta_lambda_ip1,delta_lambda_i
+  REAL(KIND=rk),DIMENSION(48)::delta_lambda_ip1_save,dummy_var
+  REAL(KIND=rk),DIMENSION(48)::deriv_visco_plast_potent,Phi_alpha_dum
+  REAL(KIND=rk),DIMENSION(48,6)::d_delta_lambda_i_d_C
+  REAL(KIND=rk),DIMENSION(48,48)::jacobian_nw
   INTEGER(KIND=ik),INTENT(IN)::algo,symm_class,NDI,NSHR,hard_law
   INTEGER(KIND=ik)::adp_i,aver_adj_ps,i_dil,n_adjust
   INTEGER(KIND=ik),PARAMETER::n_iter_max_nw=20,n_max_bt=10,adp_i_max=200
   LOGICAL,INTENT(OUT)::conv_issue
-  LOGICAL,DIMENSION(24),INTENT(OUT)::active_slip_system
+  LOGICAL,DIMENSION(48),INTENT(OUT)::active_slip_system
   LOGICAL::adp_n_conv,conv_issue_nbt
   CHARACTER(4),INTENT(IN)::env
   !
@@ -4199,15 +4204,15 @@ SUBROUTINE eval_yield_function_linearization(Phi_alpha,&
   !                    1....nonlin. interaction matrix (Cailletaud,Forest)
   IMPLICIT NONE
   REAL(KIND=rk),INTENT(OUT)::Phi_alpha
-  REAL(KIND=rk),DIMENSION(24),INTENT(OUT)::dPhi_alpha_d_delta_lambda_ip1_beta
+  REAL(KIND=rk),DIMENSION(48),INTENT(OUT)::dPhi_alpha_d_delta_lambda_ip1_beta
   REAL(KIND=rk),INTENT(IN)::tau_rss
   REAL(KIND=rk),DIMENSION(13),INTENT(IN)::mat_param_inelast
-  REAL(KIND=rk),DIMENSION(24),INTENT(IN)::d_tau_alpha_d_delta_lambda_ip1_beta
-  REAL(KIND=rk),DIMENSION(24),INTENT(IN)::plastic_slip
+  REAL(KIND=rk),DIMENSION(48),INTENT(IN)::d_tau_alpha_d_delta_lambda_ip1_beta
+  REAL(KIND=rk),DIMENSION(48),INTENT(IN)::plastic_slip
   REAL(KIND=rk)::Y_alpha,Y
   REAL(KIND=rk),DIMENSION(3)::hard_param_sb
   REAL(KIND=rk),DIMENSION(10)::hard_param_cf
-  REAL(KIND=rk),DIMENSION(24)::dY_alpha_d_delta_lambda_beta
+  REAL(KIND=rk),DIMENSION(48)::dY_alpha_d_delta_lambda_beta
   INTEGER(KIND=ik),INTENT(IN)::i_slip,algo,hard_law
   !
   ! current hardening (change in yield stress) and its derivative w.r.t.
@@ -4267,12 +4272,12 @@ SUBROUTINE hardening_function_cailletaud_forest(Y_alpha,&
   !
   IMPLICIT NONE
   REAL(KIND=rk),INTENT(OUT)::Y_alpha
-  REAL(KIND=rk),DIMENSION(24),INTENT(OUT)::dY_alpha_d_delta_lambda_beta
+  REAL(KIND=rk),DIMENSION(48),INTENT(OUT)::dY_alpha_d_delta_lambda_beta
   REAL(KIND=rk),DIMENSION(10),INTENT(IN)::hard_param_cf
-  REAL(KIND=rk),DIMENSION(24),INTENT(IN)::plastic_slip
+  REAL(KIND=rk),DIMENSION(48),INTENT(IN)::plastic_slip
   REAL(KIND=rk)::h,DeltaY,h_lin
-  REAL(KIND=rk),DIMENSION(24)::aux_funct_vec
-  REAL(KIND=rk),DIMENSION(24,24)::interact_matrix
+  REAL(KIND=rk),DIMENSION(48)::aux_funct_vec
+  REAL(KIND=rk),DIMENSION(48,48)::interact_matrix
   INTEGER(KIND=ik),INTENT(IN)::alpha_slip
   INTEGER(KIND=ik)::i_hfc
   !
@@ -4282,7 +4287,7 @@ SUBROUTINE hardening_function_cailletaud_forest(Y_alpha,&
   h=hard_param_cf(3)
   h_lin=hard_param_cf(10)
   !
-  DO i_hfc=ONE_int,TWENTY_FOUR_int
+  DO i_hfc=ONE_int,n_slip
      aux_funct_vec(i_hfc)=EXP(-h*plastic_slip(i_hfc))
   END DO
   !
@@ -4316,9 +4321,9 @@ SUBROUTINE hardening_function_schmidt_baldassari(Y_alpha,&
   !
   IMPLICIT NONE
   REAL(KIND=rk),INTENT(OUT)::Y_alpha
-  REAL(KIND=rk),DIMENSION(24),INTENT(OUT)::dY_alpha_d_delta_lambda_beta
+  REAL(KIND=rk),DIMENSION(48),INTENT(OUT)::dY_alpha_d_delta_lambda_beta
   REAL(KIND=rk),DIMENSION(3),INTENT(IN)::hard_param_sb
-  REAL(KIND=rk),DIMENSION(24),INTENT(IN)::plastic_slip
+  REAL(KIND=rk),DIMENSION(48),INTENT(IN)::plastic_slip
   REAL(KIND=rk)::aux_var,hardening_var_A,h,DeltaY
   !
   ! assign material parameters
@@ -4525,18 +4530,18 @@ SUBROUTINE newton_back_track_solver_crystal_visco_plasticity(&
   REAL(KIND=rk),INTENT(IN)::Je,dt,m_SH,theta_KK,eta,tol_nw
   REAL(KIND=rk),DIMENSION(3),INTENT(IN)::elast_const
   REAL(KIND=rk),DIMENSION(13),INTENT(IN)::mat_param_inelast
-  REAL(KIND=rk),DIMENSION(24),INTENT(IN)::delta_lambda_i
-  REAL(KIND=rk),DIMENSION(24),INTENT(IN)::plastic_slip_n
-  REAL(KIND=rk),DIMENSION(24),INTENT(INOUT)::delta_lambda_ip1
+  REAL(KIND=rk),DIMENSION(48),INTENT(IN)::delta_lambda_i
+  REAL(KIND=rk),DIMENSION(48),INTENT(IN)::plastic_slip_n
+  REAL(KIND=rk),DIMENSION(48),INTENT(INOUT)::delta_lambda_ip1
   REAL(KIND=rk),DIMENSION(3,3),INTENT(IN)::unimod_C,F_p_inv_n
   REAL(KIND=rk),DIMENSION(6,3,3),INTENT(IN)::orth_basis
   REAL(KIND=rk),DIMENSION(6,6,6),INTENT(IN)::orth_proj
   REAL(KIND=rk)::lambda,lambda_two,obj_f_two,obj_f,obj_f_save
-  REAL(KIND=rk),DIMENSION(24)::residual_nw,grad_f,grad_f_save
-  REAL(KIND=rk),DIMENSION(24)::delta_lambda_ip1_save_bt
-  REAL(KIND=rk),DIMENSION(24)::dd_delta_lambda_ip1
-  REAL(KIND=rk),DIMENSION(24,1)::dummy_var
-  REAL(KIND=rk),DIMENSION(24,24)::jacobian_nw
+  REAL(KIND=rk),DIMENSION(48)::residual_nw,grad_f,grad_f_save
+  REAL(KIND=rk),DIMENSION(48)::delta_lambda_ip1_save_bt
+  REAL(KIND=rk),DIMENSION(48)::dd_delta_lambda_ip1
+  REAL(KIND=rk),DIMENSION(48,1)::dummy_var
+  REAL(KIND=rk),DIMENSION(48,48)::jacobian_nw
   INTEGER(KIND=ik),INTENT(IN)::algo,symm_class,NDI,NSHR,hard_law
   INTEGER(KIND=ik),INTENT(IN)::n_iter_max_nw,n_max_bt
   INTEGER(KIND=ik)::l_iter_nw,back_track_count
@@ -4577,7 +4582,7 @@ SUBROUTINE newton_back_track_solver_crystal_visco_plasticity(&
         CALL back_tracking_step_length_scaling_parameter(back_tracking,&
              &back_track_count,lambda,lambda_two,delta_lambda_ip1,&
              &delta_lambda_ip1_save_bt,dd_delta_lambda_ip1,obj_f,&
-             &obj_f_save,obj_f_two,grad_f_save,TWENTY_FOUR_int)
+             &obj_f_save,obj_f_two,grad_f_save,n_slip)
      END IF
      !
      ! safe guard to avoid infinite loop
@@ -4595,7 +4600,7 @@ SUBROUTINE newton_back_track_solver_crystal_visco_plasticity(&
         ! compute iterative improvement
         dummy_var(:,1)=residual_nw
         dummy_var=SOLVE_ILL_COND_SYSTEM_OF_EQUATION(jacobian_nw,&
-             &-dummy_var,ONE_int,TWENTY_FOUR_int,-eps_iter)
+             &-dummy_var,ONE_int,n_slip,-eps_iter)
         dd_delta_lambda_ip1=dummy_var(:,1)
         !
         ! check convergence
@@ -4871,16 +4876,16 @@ SUBROUTINE residual_tangent_computation_nw_crystal_plasticity(&
   !                           NCP-function
   !
   IMPLICIT NONE
-  REAL(KIND=rk),DIMENSION(24),INTENT(OUT)::residual_nw
-  REAL(KIND=rk),DIMENSION(24),INTENT(OUT)::deriv_visco_plast_potent
-  REAL(KIND=rk),DIMENSION(24),INTENT(OUT)::Phi_alpha_all
-  REAL(KIND=rk),DIMENSION(24,24),INTENT(OUT)::jacobian_nw
+  REAL(KIND=rk),DIMENSION(48),INTENT(OUT)::residual_nw
+  REAL(KIND=rk),DIMENSION(48),INTENT(OUT)::deriv_visco_plast_potent
+  REAL(KIND=rk),DIMENSION(48),INTENT(OUT)::Phi_alpha_all
+  REAL(KIND=rk),DIMENSION(48,48),INTENT(OUT)::jacobian_nw
   REAL(KIND=rk),INTENT(IN)::Je,dt,eta,m_SH,theta_KK
   REAL(KIND=rk),DIMENSION(3),INTENT(IN)::elast_const
   REAL(KIND=rk),DIMENSION(13),INTENT(IN)::mat_param_inelast
-  REAL(KIND=rk),DIMENSION(24),INTENT(IN)::plastic_slip_iter
-  REAL(KIND=rk),DIMENSION(24),INTENT(IN)::delta_lambda_i
-  REAL(KIND=rk),DIMENSION(24),INTENT(IN)::delta_lambda_ip1
+  REAL(KIND=rk),DIMENSION(48),INTENT(IN)::plastic_slip_iter
+  REAL(KIND=rk),DIMENSION(48),INTENT(IN)::delta_lambda_i
+  REAL(KIND=rk),DIMENSION(48),INTENT(IN)::delta_lambda_ip1
   REAL(KIND=rk),DIMENSION(3,3),INTENT(IN)::unimod_C,F_p_inv_iter
   REAL(KIND=rk),DIMENSION(3,3),INTENT(IN)::F_p_inv_n
   REAL(KIND=rk),DIMENSION(6,3,3),INTENT(IN)::orth_basis
@@ -4888,8 +4893,8 @@ SUBROUTINE residual_tangent_computation_nw_crystal_plasticity(&
   REAL(KIND=rk)::kappa,mu,M_hyd,tau_alpha_rss,Phi_alpha
   REAL(KIND=rk),DIMENSION(3)::normal_dir,slip_dir
   REAL(KIND=rk),DIMENSION(6)::S_2PK_vec
-  REAL(KIND=rk),DIMENSION(24)::d_tau_alpha_d_delta_lambda_ip1_beta
-  REAL(KIND=rk),DIMENSION(24)::dPhi_alpha_d_delta_lambda_ip1_beta
+  REAL(KIND=rk),DIMENSION(48)::d_tau_alpha_d_delta_lambda_ip1_beta
+  REAL(KIND=rk),DIMENSION(48)::dPhi_alpha_d_delta_lambda_ip1_beta
   REAL(KIND=rk),DIMENSION(3,3)::unimod_Ce,unimod_C_F_p_inv_iter
   REAL(KIND=rk),DIMENSION(3,3)::M_dev,S_2PK_IC,M_IC,N_alpha
   REAL(KIND=rk),DIMENSION(6,6)::C_mat_tang
@@ -4897,7 +4902,7 @@ SUBROUTINE residual_tangent_computation_nw_crystal_plasticity(&
   INTEGER(KIND=ik),INTENT(IN)::algo,symm_class,NDI,NSHR,hard_law
   INTEGER(KIND=ik)::i_rtc,i_slip
   !
-  LOGICAL,DIMENSION(24),INTENT(OUT)::active_slip_system
+  LOGICAL,DIMENSION(48),INTENT(OUT)::active_slip_system
   CHARACTER(4),INTENT(IN)::env
   !
   ! unimodular part of elastic right Cauchy-Green stretch (Ce is only
@@ -4974,8 +4979,16 @@ SUBROUTINE residual_tangent_computation_nw_crystal_plasticity(&
   deriv_visco_plast_potent=ZERO_r
   Phi_alpha_all=ZERO_r
   !
-  DO i_slip=ONE_int,TWENTY_FOUR_int
-     CALL slip_system_fcc(normal_dir,slip_dir,i_slip)
+  DO i_slip=ONE_int,n_slip
+     IF (crystal_type==0) THEN
+        CALL slip_system_fcc(normal_dir,slip_dir,i_slip)
+     ELSE IF (crystal_type==1) THEN
+        WRITE(16,'(A)') 'BCC slip systems not yet implemented'
+        STOP
+     ELSE IF (crystal_type==2) THEN
+        WRITE(16,'(A)') 'HCP slip systems not yet implemented'
+        STOP
+     END IF
      N_alpha=comp_sec_ord_tens_rank_one(slip_dir,normal_dir)
      !
      CALL resolved_shear_stress_linearization(tau_alpha_rss,&
@@ -5049,24 +5062,24 @@ SUBROUTINE residual_tangent_nw_crystal_plasticity_generic_solver(&
   ! theta_KK..................algorithmic parameter for Kanzow-Kleinmichel
   !                           NCP-function
   IMPLICIT NONE
-  REAL(KIND=rk),DIMENSION(24),INTENT(OUT)::residual_nw
-  REAL(KIND=rk),DIMENSION(24,24),INTENT(OUT)::jacobian_nw
+  REAL(KIND=rk),DIMENSION(48),INTENT(OUT)::residual_nw
+  REAL(KIND=rk),DIMENSION(48,48),INTENT(OUT)::jacobian_nw
   REAL(KIND=rk),INTENT(IN)::Je,dt,eta,m_SH,theta_KK
   REAL(KIND=rk),DIMENSION(3),INTENT(IN)::elast_const
   REAL(KIND=rk),DIMENSION(13),INTENT(IN)::mat_param_inelast
-  REAL(KIND=rk),DIMENSION(24),INTENT(IN)::plastic_slip_n
-  REAL(KIND=rk),DIMENSION(24),INTENT(IN)::delta_lambda_i
-  REAL(KIND=rk),DIMENSION(24),INTENT(IN)::delta_lambda_ip1
+  REAL(KIND=rk),DIMENSION(48),INTENT(IN)::plastic_slip_n
+  REAL(KIND=rk),DIMENSION(48),INTENT(IN)::delta_lambda_i
+  REAL(KIND=rk),DIMENSION(48),INTENT(IN)::delta_lambda_ip1
   REAL(KIND=rk),DIMENSION(3,3),INTENT(IN)::unimod_C
   REAL(KIND=rk),DIMENSION(3,3),INTENT(IN)::F_p_inv_n
   REAL(KIND=rk),DIMENSION(6,3,3),INTENT(IN)::orth_basis
   REAL(KIND=rk),DIMENSION(6,6,6),INTENT(IN)::orth_proj
-  REAL(KIND=rk),DIMENSION(24)::deriv_visco_plast_potent,Phi_alpha_dum
-  REAL(KIND=rk),DIMENSION(24)::plastic_slip_iter
+  REAL(KIND=rk),DIMENSION(48)::deriv_visco_plast_potent,Phi_alpha_dum
+  REAL(KIND=rk),DIMENSION(48)::plastic_slip_iter
   REAL(KIND=rk),DIMENSION(3,3)::F_p_inv_iter
   INTEGER(KIND=ik),INTENT(IN)::algo,symm_class,NDI,NSHR,hard_law
   !
-  LOGICAL,DIMENSION(24)::active_slip_system
+  LOGICAL,DIMENSION(48)::active_slip_system
   CHARACTER(4),INTENT(IN)::env
   !
   ! compute hardening variables on all slip systems
@@ -5113,7 +5126,7 @@ SUBROUTINE resolved_shear_stress_linearization(tau_alpha_rss,&
   !
   IMPLICIT NONE
   REAL(KIND=rk),INTENT(OUT)::tau_alpha_rss
-  REAL(KIND=rk),DIMENSION(24),INTENT(OUT)::d_tau_alpha_d_delta_lambda_ip1_beta
+  REAL(KIND=rk),DIMENSION(48),INTENT(OUT)::d_tau_alpha_d_delta_lambda_ip1_beta
   REAL(KIND=rk),DIMENSION(3,3),INTENT(IN)::M_dev,N_alpha
   REAL(KIND=rk),DIMENSION(9,24),INTENT(IN)::d_Mandel_stress_d_delta_lambda_ip1_beta
   REAL(KIND=rk),DIMENSION(3,3)::d_Mandel_stress_d_delta_lambda_beta
@@ -5127,7 +5140,7 @@ SUBROUTINE resolved_shear_stress_linearization(tau_alpha_rss,&
   ! derivative of resolved shear stress w.r.t. incr. lagrange multiplier
   d_tau_alpha_d_delta_lambda_ip1_beta=ZERO_r
   !
-  DO i_slip=ONE_int,TWENTY_FOUR_int
+  DO i_slip=ONE_int,n_slip
      CALL transform_tens_vec_form(d_Mandel_stress_d_delta_lambda_beta,&
           &d_Mandel_stress_d_delta_lambda_ip1_beta(:,i_slip),ONE_int,env)
      d_tau_alpha_d_delta_lambda_ip1_beta(i_slip) = &
@@ -5309,16 +5322,16 @@ SUBROUTINE stress_computation_single_crystal_plasticity(S2PK,S2PK_IC,&
   !
   IMPLICIT NONE
   REAL(KIND=rk),INTENT(OUT)::Je_n1,det_Fp_inv
-  REAL(KIND=rk),DIMENSION(24),INTENT(OUT)::plastic_slip_iter
+  REAL(KIND=rk),DIMENSION(48),INTENT(OUT)::plastic_slip_iter
   REAL(KIND=rk),DIMENSION(3,3),INTENT(OUT)::S2PK,S2PK_IC,F_p_inv_n1
   REAL(KIND=rk),DIMENSION(3,3),INTENT(OUT)::Ce_n1,Ce_n1_inv,C
   REAL(KIND=rk),DIMENSION(3,3),INTENT(OUT)::F_p_inv_iter
-  REAL(KIND=rk),DIMENSION(24,6),INTENT(OUT)::d_delta_lambda_ip1_d_C
+  REAL(KIND=rk),DIMENSION(48,6),INTENT(OUT)::d_delta_lambda_ip1_d_C
   REAL(KIND=rk),INTENT(IN)::dt,m_SH,theta_KK
   REAL(KIND=rk),INTENT(INOUT)::aver_adj_stp
   REAL(KIND=rk),DIMENSION(3),INTENT(IN)::elast_const
   REAL(KIND=rk),DIMENSION(13),INTENT(IN)::mat_param_inelast
-  REAL(KIND=rk),DIMENSION(24),INTENT(IN)::plastic_slip_n
+  REAL(KIND=rk),DIMENSION(48),INTENT(IN)::plastic_slip_n
   REAL(KIND=rk),DIMENSION(3,3),INTENT(IN)::F,F_p_inv_n
   REAL(KIND=rk),DIMENSION(6,3,3),INTENT(IN)::orth_basis
   REAL(KIND=rk),DIMENSION(6,6,6),INTENT(IN)::orth_proj
@@ -5330,7 +5343,7 @@ SUBROUTINE stress_computation_single_crystal_plasticity(S2PK,S2PK_IC,&
   !
   LOGICAL::OK_FLAG
   LOGICAL,INTENT(OUT)::conv_issue_dil
-  LOGICAL,DIMENSION(24),INTENT(OUT)::active_slip_system
+  LOGICAL,DIMENSION(48),INTENT(OUT)::active_slip_system
   CHARACTER(4),INTENT(IN)::env
   !
   ! compute right Cauchy-Green tensor, its inverse and determinant of F
@@ -5581,11 +5594,11 @@ SUBROUTINE update_internal_variable_nw_iter(delta_lambda_ip1,&
   ! dd_delta_lambda_ip1.iterative improvement of incr. lagr. multipl.
   ! 
   IMPLICIT NONE
-  REAL(KIND=rk),DIMENSION(24),INTENT(INOUT)::delta_lambda_ip1
-  REAL(KIND=rk),DIMENSION(24),INTENT(OUT)::plastic_slip_iter
+  REAL(KIND=rk),DIMENSION(48),INTENT(INOUT)::delta_lambda_ip1
+  REAL(KIND=rk),DIMENSION(48),INTENT(OUT)::plastic_slip_iter
   REAL(KIND=rk),DIMENSION(3,3),INTENT(OUT)::F_p_inv_iter
-  REAL(KIND=rk),DIMENSION(24),INTENT(IN)::dd_delta_lambda_ip1
-  REAL(KIND=rk),DIMENSION(24),INTENT(IN)::plastic_slip_n
+  REAL(KIND=rk),DIMENSION(48),INTENT(IN)::dd_delta_lambda_ip1
+  REAL(KIND=rk),DIMENSION(48),INTENT(IN)::plastic_slip_n
   REAL(KIND=rk),DIMENSION(3,3),INTENT(IN)::F_p_inv_n
   !
   ! update increment in Lagrange multiplier
@@ -5735,14 +5748,14 @@ FUNCTION comp_d_delta_lambda_ip1_d_C (active_slip_system,jacobian_nw,&
   IMPLICIT NONE
   REAL(KIND=rk),INTENT(IN)::Je,m_SH,eta,dt
   REAL(KIND=rk),DIMENSION(3),INTENT(IN)::elast_const
-  REAL(KIND=rk),DIMENSION(24),INTENT(IN)::deriv_visco_plast_potent
+  REAL(KIND=rk),DIMENSION(48),INTENT(IN)::deriv_visco_plast_potent
   REAL(KIND=rk),DIMENSION(3,3),INTENT(IN)::F_p_inv_iter,unimod_C
   REAL(KIND=rk),DIMENSION(3,3),INTENT(IN)::C_inv
-  REAL(KIND=rk),DIMENSION(24,6),INTENT(IN)::d_delta_lambda_i_d_C
-  REAL(KIND=rk),DIMENSION(24,24),INTENT(IN)::jacobian_nw
+  REAL(KIND=rk),DIMENSION(48,6),INTENT(IN)::d_delta_lambda_i_d_C
+  REAL(KIND=rk),DIMENSION(48,48),INTENT(IN)::jacobian_nw
   REAL(KIND=rk),DIMENSION(6,3,3),INTENT(IN)::orth_basis
   REAL(KIND=rk),DIMENSION(6,6,6),INTENT(IN)::orth_proj
-  REAL(KIND=rk),DIMENSION(24,6)::comp_d_delta_lambda_ip1_d_C
+  REAL(KIND=rk),DIMENSION(48,6)::comp_d_delta_lambda_ip1_d_C
   INTEGER(KIND=ik),INTENT(IN)::algo,symm_class,NDI,NSHR
   REAL(KIND=rk)::mu
   REAL(KIND=rk),DIMENSION(3)::normal_dir,slip_dir
@@ -5750,8 +5763,8 @@ FUNCTION comp_d_delta_lambda_ip1_d_C (active_slip_system,jacobian_nw,&
   REAL(KIND=rk),DIMENSION(3,3)::unimod_Ce_iter,N_alpha
   REAL(KIND=rk),DIMENSION(3,3)::d_tau_alpha_d_C,S_2PK_IC
   REAL(KIND=rk),DIMENSION(6,6)::C_mat_tang_IC
-  REAL(KIND=rk),DIMENSION(24,6)::rhs_d_delta_lambda_ip1_d_C
-  REAL(KIND=rk),DIMENSION(24,6)::d_delta_lambda_ip1_d_C
+  REAL(KIND=rk),DIMENSION(48,6)::rhs_d_delta_lambda_ip1_d_C
+  REAL(KIND=rk),DIMENSION(48,6)::d_delta_lambda_ip1_d_C
   REAL(KIND=rk),DIMENSION(9,9)::sq_prod_F_p_inv_tr
   REAL(KIND=rk),DIMENSION(3,3,3,3)::sq_prod_F_p_inv_tr_tens
   REAL(KIND=rk),DIMENSION(3,3,3,3)::dyad_prod_unimodCe_Cinv
@@ -5760,7 +5773,7 @@ FUNCTION comp_d_delta_lambda_ip1_d_C (active_slip_system,jacobian_nw,&
   INTEGER(KIND=ik)::i_slip
   !
   CHARACTER(4),INTENT(IN)::env
-  LOGICAL,DIMENSION(24),INTENT(IN)::active_slip_system
+  LOGICAL,DIMENSION(48),INTENT(IN)::active_slip_system
   !
   ! elastic right Cauchy-Green tensor (unimodular in case of vol/isochoric
   ! decoupled isotropic elasticity)
@@ -5827,10 +5840,18 @@ FUNCTION comp_d_delta_lambda_ip1_d_C (active_slip_system,jacobian_nw,&
   END SELECT
   ! compute the derivative of the resolved shear stress w.r.t. right 
   ! Cauchy-Green tensor C
-  DO i_slip=ONE_int,TWENTY_FOUR_int
+  DO i_slip=ONE_int,n_slip
      IF (active_slip_system(i_slip)) THEN
         ! tensor defining the slip system
-        CALL slip_system_fcc(normal_dir,slip_dir,i_slip)
+        IF (crystal_type==0) THEN
+           CALL slip_system_fcc(normal_dir,slip_dir,i_slip)
+        ELSE IF (crystal_type==1) THEN
+           WRITE(16,'(A)') 'BCC slip systems not yet implemented'
+           STOP
+        ELSE IF (crystal_type==2) THEN
+           WRITE(16,'(A)') 'HCP slip systems not yet implemented'
+           STOP
+        END IF
         N_alpha=comp_sec_ord_tens_rank_one(slip_dir,normal_dir)
         !
         ! derivative of resolved shear stress w.r.t. C
@@ -5863,16 +5884,16 @@ FUNCTION comp_d_delta_lambda_ip1_d_C (active_slip_system,jacobian_nw,&
   SELECT CASE (algo)
   CASE (ZERO_int) ! augmented lagrangian approach
      d_delta_lambda_ip1_d_C=SOLVE_SYSTEM_OF_EQUATION(jacobian_nw,&
-          &rhs_d_delta_lambda_ip1_d_C,SIX_int,TWENTY_FOUR_int)
+          &rhs_d_delta_lambda_ip1_d_C,SIX_int,n_slip)
   CASE (ONE_int)  ! NCP-function (Kanzow-Kleinmichel)
      d_delta_lambda_ip1_d_C=SOLVE_ILL_COND_SYSTEM_OF_EQUATION(jacobian_nw,&
-          &rhs_d_delta_lambda_ip1_d_C,SIX_int,TWENTY_FOUR_int,-eps_iter)
+          &rhs_d_delta_lambda_ip1_d_C,SIX_int,n_slip,-eps_iter)
   CASE (TWO_int)  ! Perzyna viscoplastic formulation
      d_delta_lambda_ip1_d_C=SOLVE_ILL_COND_SYSTEM_OF_EQUATION(jacobian_nw,&
-          &rhs_d_delta_lambda_ip1_d_C,SIX_int,TWENTY_FOUR_int,-eps_iter)
+          &rhs_d_delta_lambda_ip1_d_C,SIX_int,n_slip,-eps_iter)
   CASE (THREE_int)! Ortiz/Miehe viscoplastic formulation
      d_delta_lambda_ip1_d_C=SOLVE_ILL_COND_SYSTEM_OF_EQUATION(jacobian_nw,&
-          &rhs_d_delta_lambda_ip1_d_C,SIX_int,TWENTY_FOUR_int,-eps_iter)
+          &rhs_d_delta_lambda_ip1_d_C,SIX_int,n_slip,-eps_iter)
   CASE DEFAULT
      WRITE(16,'(A)')'Unknown algorithm id used in: comp_d_delta_lambda_ip1_d_C (sec)'
   END SELECT
@@ -6036,7 +6057,7 @@ FUNCTION consistent_algorithmic_tangent_augmented_lagrangian_penalty(C,&
   REAL(KIND=rk),DIMENSION(3,3),INTENT(IN)::C,F_p_inv_n,F_p_inv_iter
   REAL(KIND=rk),DIMENSION(3,3),INTENT(IN)::Ce_n1,Ce_n1_inv
   REAL(KIND=rk),DIMENSION(3,3),INTENT(IN)::S2PK_IC,F_p_inv_n1
-  REAL(KIND=rk),DIMENSION(24,6),INTENT(IN)::d_delta_lambda_ip1_d_C
+  REAL(KIND=rk),DIMENSION(48,6),INTENT(IN)::d_delta_lambda_ip1_d_C
   REAL(KIND=rk),DIMENSION(6,3,3),INTENT(IN)::orth_basis
   REAL(KIND=rk),DIMENSION(6,6,6),INTENT(IN)::orth_proj
   REAL(KIND=rk)::kappa,mu
@@ -6051,7 +6072,7 @@ FUNCTION consistent_algorithmic_tangent_augmented_lagrangian_penalty(C,&
   REAL(KIND=rk),DIMENSION(3,3,3,3)::d_S_d_Fp_inv_tens
   REAL(KIND=rk),DIMENSION(3,3,3,3)::d_Ce_d_Fp_inv,plast_tang_contrib
   INTEGER(KIND=ik),INTENT(IN)::symm_class,NDI,NSHR
-  LOGICAL,DIMENSION(24),INTENT(IN)::active_slip_system
+  LOGICAL,DIMENSION(48),INTENT(IN)::active_slip_system
   !
   CHARACTER(4),INTENT(IN)::env
   !
@@ -6174,27 +6195,27 @@ FUNCTION CSDA_material_tangent_single_crystal_plast(S2PK,F,dt,F_p_inv_n,&
   REAL(KIND=rk),INTENT(IN)::dt,m_SH,theta_KK,aver_adj_stp
   REAL(KIND=rk),DIMENSION(3),INTENT(IN)::elast_const
   REAL(KIND=rk),DIMENSION(13),INTENT(IN)::mat_param_inelast
-  REAL(KIND=rk),DIMENSION(24),INTENT(IN)::plastic_slip_n
+  REAL(KIND=rk),DIMENSION(48),INTENT(IN)::plastic_slip_n
   REAL(KIND=rk),DIMENSION(3,3),INTENT(IN)::S2PK,F,F_p_inv_n
   REAL(KIND=rk),DIMENSION(6,3,3),INTENT(IN)::orth_basis
   REAL(KIND=rk),DIMENSION(6,6,6),INTENT(IN)::orth_proj
   REAL(KIND=rk)::Je_n1_ptb,det_Fp_inv_ptb,aver_adj_stp_ptb
   REAL(KIND=rk),DIMENSION(6)::S2PK_vec,S2PK_ptb_vec
-  REAL(KIND=rk),DIMENSION(24)::plastic_slip_ptb
+  REAL(KIND=rk),DIMENSION(48)::plastic_slip_ptb
   REAL(KIND=rk),DIMENSION(3,3)::F_inv,pertub,F_pertub,S2PK_ptb
   REAL(KIND=rk),DIMENSION(3,3)::S2PK_IC_ptb,F_p_inv_n1_ptb,C_ptb
   REAL(KIND=rk),DIMENSION(3,3)::Ce_n1_ptb,Ce_n1_inv_ptb
   REAL(KIND=rk),DIMENSION(3,3)::F_p_inv_iter_ptb
   REAL(KIND=rk),DIMENSION(6,6)::C_tang
   REAL(KIND=rk),DIMENSION(6,6)::CSDA_material_tangent_single_crystal_plast
-  REAL(KIND=rk),DIMENSION(24,6)::d_delta_lambda_ip1_d_C_ptb
+  REAL(KIND=rk),DIMENSION(48,6)::d_delta_lambda_ip1_d_C_ptb
   INTEGER(KIND=ik),INTENT(IN)::symm_class,algo,numtang,NDI,NSHR
   INTEGER(KIND=ik),INTENT(IN)::hard_law
   INTEGER(KIND=ik)::j_cmt
   INTEGER(KIND=ik),DIMENSION(6,2)::index_list
   !
   LOGICAL::OK_FLAG,conv_issue_dil_ptb,run_ptb_loop
-  LOGICAL,DIMENSION(24)::active_slip_system_ptb
+  LOGICAL,DIMENSION(48)::active_slip_system_ptb
   CHARACTER(4),INTENT(IN)::env
   !
   ! parameter for numerical tangent computation
@@ -6329,21 +6350,29 @@ FUNCTION derivative_inverse_plastic_def_grad_right_cauchy_green_tensor_c(&
   !                         w.r.t. right Cauchy-Green tensor
   IMPLICIT NONE
   REAL(KIND=rk),DIMENSION(3,3),INTENT(IN)::F_p_inv_n
-  REAL(KIND=rk),DIMENSION(24,6),INTENT(IN)::d_delta_lambda_ip1_d_C
+  REAL(KIND=rk),DIMENSION(48,6),INTENT(IN)::d_delta_lambda_ip1_d_C
   REAL(KIND=rk),DIMENSION(3)::normal_dir,slip_dir
   REAL(KIND=rk),DIMENSION(3,3)::N_alpha,d_delta_lambda_alpha_ip1_d_C
   REAL(KIND=rk),DIMENSION(3,3)::F_p_inv_n_sing_contr_N_alpha
   REAL(KIND=rk),DIMENSION(3,3,3,3)::d_F_p_inv_n1_d_C
   REAL(KIND=rk),DIMENSION(3,3,3,3)::derivative_inverse_plastic_def_grad_right_cauchy_green_tensor_c
   INTEGER(KIND=ik)::i_slip
-  LOGICAL,DIMENSION(24),INTENT(IN)::active_slip_system
+  LOGICAL,DIMENSION(48),INTENT(IN)::active_slip_system
   CHARACTER(4),INTENT(IN)::env
   !
   d_F_p_inv_n1_d_C=ZERO_r
-  DO i_slip=ONE_int,TWENTY_FOUR_int
+  DO i_slip=ONE_int,n_slip
      IF (active_slip_system(i_slip)) THEN
         ! tensor defining the slip system
-        CALL slip_system_fcc(normal_dir,slip_dir,i_slip)
+        IF (crystal_type==0) THEN
+           CALL slip_system_fcc(normal_dir,slip_dir,i_slip)
+        ELSE IF (crystal_type==1) THEN
+           WRITE(16,'(A)') 'BCC slip systems not yet implemented'
+           STOP
+        ELSE IF (crystal_type==2) THEN
+           WRITE(16,'(A)') 'HCP slip systems not yet implemented'
+           STOP
+        END IF
         N_alpha=comp_sec_ord_tens_rank_one(slip_dir,normal_dir)
         CALL transform_symm_tens_vec_form(d_delta_lambda_alpha_ip1_d_C,&
              &d_delta_lambda_ip1_d_C(i_slip,:),ONE_int,env)
@@ -6513,7 +6542,7 @@ FUNCTION interaction_matrix(hard_param_im)
   REAL(KIND=rk),DIMENSION(6),INTENT(IN)::hard_param_im
   REAL(KIND=rk)::h_0,h_1,h_2,h_3,h_4,h_5
   REAL(KIND=rk),DIMENSION(12,12)::interact_mat_part
-  REAL(KIND=rk),DIMENSION(24,24)::interaction_matrix
+  REAL(KIND=rk),DIMENSION(48,48)::interaction_matrix
   !
   ! assign material parameters
   h_0=hard_param_im(1); h_1=hard_param_im(2); h_2=hard_param_im(3)
@@ -6576,7 +6605,7 @@ FUNCTION linearization_mandel_stress(F_p_inv_n,unimod_C_F_p_inv_iter,mu,&
   !
   CHARACTER(4),INTENT(IN)::env
   !
-  DO i_slip_sys=ONE_int,TWENTY_FOUR_int
+  DO i_slip_sys=ONE_int,n_slip
      CALL slip_system_fcc(normal_dir,slip_dir,i_slip_sys)
      N_beta=comp_sec_ord_tens_rank_one(slip_dir,normal_dir)
      d_F_p_inv_d_delta_lambda_beta=-MATMUL(F_p_inv_n,N_beta)
@@ -6641,7 +6670,7 @@ FUNCTION linearization_mandel_stress_elasticity_SH_strain(F_p_inv_n,&
   d_Mandel_stress_d_Ce=derivative_mandel_stress_ce_sh_elasticity(&
        &S_2PK_IC,C_mat_elast,Ce,env)
   !
-  DO i_slip_sys=ONE_int,TWENTY_FOUR_int
+  DO i_slip_sys=ONE_int,n_slip
      CALL slip_system_fcc(normal_dir,slip_dir,i_slip_sys)
      N_beta=comp_sec_ord_tens_rank_one(slip_dir,normal_dir)
      d_F_p_inv_d_delta_lambda_beta=-MATMUL(F_p_inv_n,N_beta)
@@ -6770,7 +6799,7 @@ FUNCTION update_plastic_deformation_gradient(F_p_inv_n,delta_lambda_ip1)
   !
   IMPLICIT NONE
   REAL(KIND=rk),DIMENSION(3)::normal_dir,slip_dir
-  REAL(KIND=rk),DIMENSION(24),INTENT(IN)::delta_lambda_ip1
+  REAL(KIND=rk),DIMENSION(48),INTENT(IN)::delta_lambda_ip1
   REAL(KIND=rk),DIMENSION(3,3),INTENT(IN)::F_p_inv_n
   REAL(KIND=rk),DIMENSION(3,3)::update_plastic_deformation_gradient
   REAL(KIND=rk),DIMENSION(3,3)::relative_F_p_inv,N_alpha
@@ -6778,8 +6807,16 @@ FUNCTION update_plastic_deformation_gradient(F_p_inv_n,delta_lambda_ip1)
   !
   relative_F_p_inv=IDENT
   !
-  DO i_slip=ONE_int,TWENTY_FOUR_int
-     CALL slip_system_fcc(normal_dir,slip_dir,i_slip)
+  DO i_slip=ONE_int,n_slip
+     IF (crystal_type==0) THEN
+        CALL slip_system_fcc(normal_dir,slip_dir,i_slip)
+     ELSE IF (crystal_type==1) THEN
+        WRITE(16,'(A)') 'BCC slip systems not yet implemented'
+        STOP
+     ELSE IF (crystal_type==2) THEN
+        WRITE(16,'(A)') 'HCP slip systems not yet implemented'
+        STOP
+     END IF
      N_alpha=comp_sec_ord_tens_rank_one(slip_dir,normal_dir)
      relative_F_p_inv=relative_F_p_inv-delta_lambda_ip1(i_slip)*N_alpha
   END DO
@@ -7019,8 +7056,6 @@ SUBROUTINE UMAT(STRESS,STATEV,DDSDDE,SSE,SPD,SCD,RPL,DDSDDT,DRPLDE,&
   CHARACTER(4),PARAMETER::env_used='ABAQ'
   CHARACTER(80)::CMNAME
   LOGICAL::conv_issue
-  ! --- Sudip added -----
-  INTEGER(KIND=ik)::crystal_type
   !
   INTRINSIC MATMUL,TRANSPOSE
   !
@@ -7042,18 +7077,17 @@ SUBROUTINE UMAT(STRESS,STATEV,DDSDDE,SSE,SPD,SCD,RPL,DDSDDT,DRPLDE,&
   orient=PROPS(7:9)               ! c7...c9
   elast_const=PROPS(10:12)        ! c10...c12
   mat_param_inelast=PROPS(13:25)  ! c13...c25
-  crystal_type = INT(PROPS(26))   ! c26: 0=FCC(24), 1=BCC(48), 2=HCP(18)
-IF (crystal_type == 0) THEN
-    n_slip = 24
-ELSE IF (crystal_type == 1) THEN
-    n_slip = 48
-ELSE IF (crystal_type == 2) THEN
-    n_slip = 18
-ELSE
-    WRITE(16,'(A)') 'Unknown crystal_type in PROPS(26), STOPPING'
-    STOP
-END IF
-  
+  crystal_type=INT(PROPS(26))      ! c26: 0=FCC(24), 1=BCC(48), 2=HCP(18)
+  IF (crystal_type==0) THEN
+     n_slip=24
+  ELSE IF (crystal_type==1) THEN
+     n_slip=48
+  ELSE IF (crystal_type==2) THEN
+     n_slip=18
+  ELSE
+     WRITE(16,'(A)') 'Unknown crystal_type in PROPS(26), STOPPING'
+     STOP
+  END IF
   !
   IF (algo.EQ.ZERO_int) THEN
      DTIME_tp=ONE_HUNDREDTH_r
