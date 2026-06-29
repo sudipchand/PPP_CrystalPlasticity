@@ -1,0 +1,67 @@
+
+Derzeit geladene Module:
+  1) gcc/11.4.0                4) compiler/.latest (H)   7) abaqus/2023
+  2) tbb/.latest         (H)   5) ifort/.latest    (H)
+  3) compiler-rt/.latest (H)   6) intel/2024.2.0
+
+  Wo:
+   H:  Verstecktes Modul.
+
+ 
+
+Abaqus License Manager checked out the following licenses:
+Abaqus/Standard checked out 8 tokens from Flexnet server license4.imfd.tu-freiberg.de.
+<165 out of 300 licenses remain available>.
+Intel(R) Fortran Intel(R) 64 Compiler Classic for applications running on Intel(R) 64, Version 2021.13.0 Build 20240602_000000
+Copyright (C) 1985-2024 Intel Corporation.  All rights reserved.
+
+ifort: remark #10448: Intel(R) Fortran Compiler Classic (ifort) is now deprecated and will be discontinued late 2024. Intel recommends that customers transition now to using the LLVM-based Intel(R) Fortran Compiler (ifx) for continued Windows* and Linux* support, new language support, new language features, and optimizations. Use '-diag-disable=10448' to disable this message.
+ifort: command line warning #10434: option '-extend_source' use with underscore is deprecated; use '-extend-source' instead
+UMAT_cp_phase1.f(6789): remark #15009: umat_ has been targeted for automatic cpu dispatch
+UMAT_cp_phase1.f(2787): remark #15009: rotation_matrix_bunge_ has been targeted for automatic cpu dispatch
+UMAT_cp_phase1.f(4585): remark #15009: orthonormal_basis_subspace_ has been targeted for automatic cpu dispatch
+UMAT_cp_phase1.f(2616): remark #15009: polar_decompostion_def_grad_ has been targeted for automatic cpu dispatch
+UMAT_cp_phase1.f(2012): remark #15009: eulangfromrotmat_ has been targeted for automatic cpu dispatch
+UMAT_cp_phase1.f(6113): remark #15009: csda_material_tangent_single_crystal_plast_ has been targeted for automatic cpu dispatch
+UMAT_cp_phase1.f(5203): remark #15009: stress_computation_single_crystal_plasticity_ has been targeted for automatic cpu dispatch
+UMAT_cp_phase1.f(5413): remark #15009: s2pk_ic_cubic_elasticity_seth_hill_ has been targeted for automatic cpu dispatch
+UMAT_cp_phase1.f(1829): remark #15009: double_contraction_fourth_order_tensor_matmul_ has been targeted for automatic cpu dispatch
+UMAT_cp_phase1.f(5564): remark #15009: aux_prod_projector_ has been targeted for automatic cpu dispatch
+UMAT_cp_phase1.f(4332): remark #15009: linear_elasticity_subspace_projection_ has been targeted for automatic cpu dispatch
+UMAT_cp_phase1.f(3375): remark #15009: coefficients_for_projection_ has been targeted for automatic cpu dispatch
+UMAT_cp_phase1.f(4677): remark #15009: projection_tensors_stress_tangent_transformation_ has been targeted for automatic cpu dispatch
+UMAT_cp_phase1.f(3066): remark #15009: symm_tensor_product_second_order_tensors_ has been targeted for automatic cpu dispatch
+UMAT_cp_phase1.f(2978): remark #15009: square_product_second_order_tensors_ has been targeted for automatic cpu dispatch
+UMAT_cp_phase1.f(1672): remark #15009: approp_index_ has been targeted for automatic cpu dispatch
+UMAT_cp_phase1.f(2848): remark #15009: spec_tensor_product_second_order_tensors_ has been targeted for automatic cpu dispatch
+UMAT_cp_phase1.f(1794): remark #15009: double_contraction_fourth_order_second_order_tensor_matmul_ has been targeted for automatic cpu dispatch
+UMAT_cp_phase1.f(3852): remark #15009: determine_incremental_lagrange_multiplier_miehe_viscoplastic_ has been targeted for automatic cpu dispatch
+UMAT_cp_phase1.f(4427): remark #15009: newton_back_track_solver_crystal_visco_plasticity_ has been targeted for automatic cpu dispatch
+UMAT_cp_phase1.f(1225): remark #15009: back_tracking_step_length_scaling_parameter_ has been targeted for automatic cpu dispatch
+UMAT_cp_phase1.f(4961): remark #15009: residual_tangent_nw_crystal_plasticity_generic_solver_ has been targeted for automatic cpu dispatch
+UMAT_cp_phase1.f(2729): remark #15009: solve_ill_cond_system_of_equation_ has been targeted for automatic cpu dispatch
+UMAT_cp_phase1.f(3565): remark #15009: determine_incremental_lagrange_multiplier_augmented_lagrange_ has been targeted for automatic cpu dispatch
+UMAT_cp_phase1.f(5635): remark #15009: comp_d_delta_lambda_ip1_d_c_ has been targeted for automatic cpu dispatch
+UMAT_cp_phase1.f(4773): remark #15009: residual_tangent_computation_nw_crystal_plasticity_ has been targeted for automatic cpu dispatch
+UMAT_cp_phase1.f(3150): remark #15009: assembly_residual_jacobian_newton_ has been targeted for automatic cpu dispatch
+UMAT_cp_phase1.f(4260): remark #15009: hardening_function_schmidt_baldassari_ has been targeted for automatic cpu dispatch
+UMAT_cp_phase1.f(6386): remark #15009: extract_hardening_parameters_crystal_plast_ has been targeted for automatic cpu dispatch
+UMAT_cp_phase1.f(4208): remark #15009: hardening_function_cailletaud_forest_ has been targeted for automatic cpu dispatch
+UMAT_cp_phase1.f(6449): remark #15009: interaction_matrix_ has been targeted for automatic cpu dispatch
+UMAT_cp_phase1.f(4131): remark #15009: eval_yield_function_linearization_ has been targeted for automatic cpu dispatch
+UMAT_cp_phase1.f(6556): remark #15009: linearization_mandel_stress_elasticity_sh_strain_ has been targeted for automatic cpu dispatch
+UMAT_cp_phase1.f(6504): remark #15009: linearization_mandel_stress_ has been targeted for automatic cpu dispatch
+UMAT_cp_phase1.f(5522): remark #15009: update_internal_variable_nw_iter_ has been targeted for automatic cpu dispatch
+UMAT_cp_phase1.f(2661): remark #15009: solve_system_of_equation_ has been targeted for automatic cpu dispatch
+UMAT_cp_phase1.f(1313): remark #15009: m33inv_ has been targeted for automatic cpu dispatch
+UMAT_cp_phase1.f(5946): remark #15009: consistent_algorithmic_tangent_augmented_lagrangian_penalty_ has been targeted for automatic cpu dispatch
+UMAT_cp_phase1.f(6268): remark #15009: derivative_inverse_plastic_def_grad_right_cauchy_green_tensor_c_ has been targeted for automatic cpu dispatch
+UMAT_cp_phase1.f(5886): remark #15009: comp_derivative_d_s2pk_ic_d_ce_ic_ has been targeted for automatic cpu dispatch
+UMAT_cp_phase1.f(2290): remark #15009: extract_symm_fourth_ord_tens_minor_symm_ has been targeted for automatic cpu dispatch
+UMAT_cp_phase1.f(1365): remark #15009: pushrc_ has been targeted for automatic cpu dispatch
+UMAT_cp_phase1.f(5599): remark #15009: comp_add_stress_contrib_tang_ has been targeted for automatic cpu dispatch
+UMAT_cp_phase1.f(7124): remark #15009: sdvini_ has been targeted for automatic cpu dispatch
+Intel(R) Fortran Intel(R) 64 Compiler Classic for applications running on Intel(R) 64, Version 2021.13.0 Build 20240602_000000
+Copyright (C) 1985-2024 Intel Corporation.  All rights reserved.
+
+ifort: remark #10448: Intel(R) Fortran Compiler Classic (ifort) is now deprecated and will be discontinued late 2024. Intel recommends that customers transition now to using the LLVM-based Intel(R) Fortran Compiler (ifx) for continued Windows* and Linux* support, new language support, new language features, and optimizations. Use '-diag-disable=10448' to disable this message.

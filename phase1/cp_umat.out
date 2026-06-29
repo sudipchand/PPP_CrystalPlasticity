@@ -1,0 +1,39 @@
+Job started from /home/sc64kiga/pbs.1333862.mmaster02.x8z
+Working directory: /home/sc64kiga/abaqus_supervisor_umat/phase1
+Loaded modules:
+Paths:
+/cluster/stages/2024.0/software/intel/2024.2/compiler/2024.2/bin/ifort
+/cluster/application/abaqus/2023/Commands/abaqus
+Analysis initiated from SIMULIA established products
+Abaqus JOB cp_uniaxial_1
+Abaqus 2023
+Begin Compiling Abaqus/Standard User Subroutines
+Wed 27 May 2026 06:37:06 PM CEST
+ Intel(R) Fortran 2021.13.0-1693
+End Compiling Abaqus/Standard User Subroutines
+Begin Linking Abaqus/Standard User Subroutines
+GNU ld version 2.30-128.el8_10
+End Linking Abaqus/Standard User Subroutines
+Wed 27 May 2026 06:37:18 PM CEST
+Begin Analysis Input File Processor
+Wed 27 May 2026 06:37:18 PM CEST
+Run pre
+Wed 27 May 2026 06:37:25 PM CEST
+End Analysis Input File Processor
+Begin Abaqus/Standard Analysis
+Wed 27 May 2026 06:37:25 PM CEST
+Run standard
+Wed 27 May 2026 06:38:04 PM CEST
+Abaqus Error: Abaqus/Standard Analysis exited with an error - Please see the 
+message file for possible error messages if the file exists.
+Begin SIM Wrap-up
+Wed 27 May 2026 06:38:04 PM CEST
+Run SMASimUtility
+Wed 27 May 2026 06:38:04 PM CEST
+End SIM Wrap-up
+Abaqus/Analysis exited with errors
+Abaqus finished.
+ THE ANALYSIS HAS NOT BEEN COMPLETED
+                              WITH      2 ERROR MESSAGES ON THE MSG FILE
+--- UMAT log (cp_uniaxial_1.feh) ---
+Job ended.

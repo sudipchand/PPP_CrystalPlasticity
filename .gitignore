@@ -1,0 +1,34 @@
+# Abaqus output
+*.odb
+*.lck
+*.sim
+*.stt
+*.mdl
+*.prt
+*.res
+*.dat
+*.msg
+*.log
+*.sta
+*.com
+*.ipm
+*.abq
+*.pac
+*.sel
+
+# Compiled Fortran
+*.o
+*.mod
+*.exe
+
+# Large result archives
+*.rar
+*.zip
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Windows
+Thumbs.db
+desktop.ini
